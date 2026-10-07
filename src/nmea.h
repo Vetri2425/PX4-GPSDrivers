@@ -70,10 +70,8 @@ public:
 
 private:
 	void handleHeading(float heading_deg, float heading_stddev_deg);
-	void request_unicore_messages();
 
 	UnicoreParser _unicore_parser;
-	gps_abstime _unicore_heading_received_last;
 
 	enum class NMEADecodeState {
 		uninit,

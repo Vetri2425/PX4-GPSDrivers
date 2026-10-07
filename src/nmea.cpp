@@ -960,8 +960,6 @@ int GPSDriverNMEA::receive(unsigned timeout)
 
 					// Don't mark this as handled, just publish it with position later.
 
-					_unicore_heading_received_last = gps_absolute_time();
-
 					// Unicore seems to publish heading and standard deviation of 0
 					// to signal that it has not initialized the heading yet.
 					if (_unicore_parser.heading().heading_stddev_deg > 0.0f) {
@@ -989,12 +987,9 @@ int GPSDriverNMEA::receive(unsigned timeout)
 
 					// Don't mark this as handled, just publish it with position later.
 
-					// Receiving this message tells us that we are talking to a UM982. If
-					// UNIHEADINGA is not configured by default, we request it now.
-
-					if (gps_absolute_time() - _unicore_heading_received_last > 1000000) {
-						request_unicore_messages();
-					}
+					// The receiver owns its configuration: the messages consumed here
+					// (GPGGA, UNIAGRICA, UNIHEADINGA, GPGST, GPGSA, GPRMC) must be stored
+					// on the UM982 itself. Never request or configure them from PX4.
 
 					_gps_position->vel_m_s = _unicore_parser.agrica().velocity_m_s;
 					_gps_position->vel_n_m_s = _unicore_parser.agrica().velocity_north_m_s;
@@ -1048,46 +1043,6 @@ void GPSDriverNMEA::handleHeading(float heading_deg, float heading_stddev_deg)
 
 	const float heading_stddev_rad = heading_stddev_deg * M_PI_F / 180.0f;
 	_gps_position->heading_accuracy = heading_stddev_rad;
-}
-
-void GPSDriverNMEA::request_unicore_messages()
-{
-	// Configure position messages on serial port. Don't save it though.
-	{
-		// position
-		uint8_t buf[] = "GPGGA COM1 0.2\r\n";
-		write(buf, sizeof(buf) - 1);
-	}
-
-	{
-		// velocity
-		uint8_t buf[] = "UNIAGRICA COM1 0.2\r\n";
-		write(buf, sizeof(buf) - 1);
-	}
-
-	{
-		// heading
-		uint8_t buf[] = "UNIHEADINGA COM1 0.2\r\n";
-		write(buf, sizeof(buf) - 1);
-	}
-
-	{
-		// eph, epv
-		uint8_t buf[] = "GPGST COM1 1.0\r\n";
-		write(buf, sizeof(buf) - 1);
-	}
-
-	{
-		// vdop
-		uint8_t buf[] = "GPGSA COM1 1.0\r\n";
-		write(buf, sizeof(buf) - 1);
-	}
-
-	{
-		// time
-		uint8_t buf[] = "GPRMC COM1 1.0\r\n";
-		write(buf, sizeof(buf) - 1);
-	}
 }
 
 #define HEXDIGIT_CHAR(d) ((char)((d) + (((d) < 0xA) ? '0' : 'A'-0xA)))
